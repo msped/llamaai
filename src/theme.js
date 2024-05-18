@@ -33,6 +33,7 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     borderRadius: 8, // Rounded corners for buttons
+                    color: '#fff'
                 },
             },
         },
