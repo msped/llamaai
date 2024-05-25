@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "cy:open": "cypress open",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -30,6 +31,7 @@
     "react-dom": "^18"
   },
   "devDependencies": {
+    "cypress": "^13.10.0",
     "drizzle-kit": "^0.21.2",
     "eslint": "^8",
     "eslint-config-next": "14.2.3"
