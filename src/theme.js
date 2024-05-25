@@ -9,16 +9,16 @@ const bric = Bricolage_Grotesque({ subsets: ["latin"] });
 const theme = createTheme({
     palette: {
         primary: {
-            main: '#07081D',
-            contrastText: '#fff',
+            main: '#fff',
+            contrastText: '#000',
         },
         secondary: {
             main: '#ff1744',
             contrastText: '#fff',
         },
         background: {
-            default: '#07081D',
-            paper: '#07081D'
+            default: '#fff',
+            paper: '#000'
         },
     },
     typography: {
@@ -33,7 +33,7 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     borderRadius: 8, // Rounded corners for buttons
-                    color: '#fff'
+                    color: '#000'
                 },
             },
         },
@@ -46,10 +46,28 @@ const theme = createTheme({
         MuiTypography: {
             styleOverrides: {
                 root: {
-                    color: '#fff', // Consistent text color
+                    color: '#000', // Consistent text color
                 },
             },
         },
+        MuiDialog: {
+            styleOverrides: {
+                paper: {
+                    backgroundColor: '#fff',
+                },
+            },
+        },
+        MuiTab: {
+            styleOverrides: {
+                root:{
+                    "&.Mui-selected": {
+                    backgroundColor: '#fff',
+                    fontWeight: 'bold',
+                    color: '#000'
+                    }
+                }
+            }
+        }
         // Additional component customizations can be added as needed
     },
 });
