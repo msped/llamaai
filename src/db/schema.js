@@ -2,26 +2,17 @@ import {
     timestamp,
     pgTable,
     text,
-    primaryKey,
     integer,
-} from "drizzle-orm/pg-core"
-import postgres from "postgres"
-import { drizzle } from "drizzle-orm/postgres-js"
-
-const connectionString = process.env.DATABASE_URL
-const pool = postgres(connectionString, { max: 1 })
-
-export const db = drizzle(pool)
+} from "drizzle-orm/pg-core";
 
 export const users = pgTable("user", {
-    id: text("id")
-        .primaryKey()
-        .$defaultFn(() => crypto.randomUUID()),
+    id: text("id").notNull().primaryKey(),
+    username: text("username").notNull().unique(),
     name: text("name"),
-    email: text("email").notNull(),
+    email: text("email").notNull().unique(),
     emailVerified: timestamp("emailVerified", { mode: "date" }),
     image: text("image"),
-})
+});
 
 export const accounts = pgTable(
     "account",
@@ -41,21 +32,19 @@ export const accounts = pgTable(
         session_state: text("session_state"),
     },
     (account) => ({
-        compoundKey: primaryKey({
-        columns: [account.provider, account.providerAccountId],
-        }),
+        primaryKey: [account.provider, account.providerAccountId],
     })
-)
+);
 
 export const sessions = pgTable("session", {
-    sessionToken: text("sessionToken").primaryKey(),
+    sessionToken: text("sessionToken").notNull().primaryKey(),
     userId: text("userId")
         .notNull()
         .references(() => users.id, { onDelete: "cascade" }),
     expires: timestamp("expires", { mode: "date" }).notNull(),
-    })
+});
 
-    export const verificationTokens = pgTable(
+export const verificationTokens = pgTable(
     "verificationToken",
     {
         identifier: text("identifier").notNull(),
@@ -63,6 +52,19 @@ export const sessions = pgTable("session", {
         expires: timestamp("expires", { mode: "date" }).notNull(),
     },
     (vt) => ({
-        compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
+        primaryKey: [vt.identifier, vt.token],
     })
-)
+);
+
+export const subscriptions = pgTable("subscriptions", {
+    userId: text("userId")
+        .notNull()
+        .primaryKey()
+        .references(() => users.id, { onDelete: "cascade" }),
+    stripeSubscriptionId: text("stripeSubscriptionId").notNull(),
+    stripeCustomerId: text("stripeCustomerId").notNull(),
+    stripePriceId: text("stripePriceId").notNull(),
+    stripeCurrentPeriodEnd: timestamp("stripeCurrentPeriodEnd", {
+        mode: "string",
+    }).notNull(),
+});
