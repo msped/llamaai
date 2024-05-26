@@ -1,4 +1,6 @@
 import { db } from '@/db/index';
+import { eq } from 'drizzle-orm';
+
 
 export const getUserByUsername = async (username) => {
     try {
@@ -42,3 +44,7 @@ export const updateUser = async (id, data) => {
         return null;
     }
 };
+
+export async function deleteUser(userId) {
+    await db.delete(users).where(eq(users.id, userId))
+}
