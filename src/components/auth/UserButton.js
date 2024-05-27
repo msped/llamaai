@@ -35,6 +35,11 @@ export default function UserButton() {
                 MenuListProps={{
                     'aria-labelledby': 'user-account-menu-button',
                 }}
+                sx={{
+                    '& .MuiMenu-paper': {
+                        backgroundColor: '#000',
+                    }
+                }}
             >
                 <MenuItem>
                     <Settings />
