@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { subscriptions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
+import { updateUser } from "@/db/data/user";
 
 export async function POST(req) {
     const body = await req.text();
@@ -56,7 +57,28 @@ export async function POST(req) {
             ).toISOString(),
         })
         .where(eq(subscriptions.stripeSubscriptionId, subscription.id));
-    }
+    } else if (event.type === "customer.subscription.updated") {
+        const subscription = await stripe.subscriptions.retrieve(
+            session.subscription
+        );
 
+        await db
+        .update(subscriptions)
+        .set({
+            stripePriceId: subscription.items.data[0]?.price.id,
+            stripeCurrentPeriodEnd: new Date(
+            subscription.current_period_end * 1000
+            ).toISOString(),
+        })
+        .where(eq(subscriptions.stripeSubscriptionId, subscription.id));
+    } else if (event.type === "customer.subscription.deleted") {
+        await db
+        .delete(subscriptions)
+        .where(eq(subscriptions.stripeSubscriptionId, session.subscription));
+    } else if (event.type === "customer.created") {
+        updateUser(session.metadata.userId, {
+            stripeCustomerId: session.id,
+        });
+    }
     return new Response(null, { status: 200 });
 }
