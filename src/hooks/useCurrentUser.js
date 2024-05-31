@@ -1,7 +1,20 @@
+import { useState, useEffect } from 'react';
 import { getSession } from 'next-auth/react';
 
 export const useCurrentUser = () => {
-    const session = getSession();
+    const [user, setUser] = useState(null);
+    
+    useEffect(() => {
+        const loadUser = async () => {
+            const session = await getSession();
+            if (session) {
+                setUser(session.user);
+            }
+        };
 
-    return session.data?.user;
+        loadUser();
+    }, []); // The empty dependency array ensures this effect runs once on mount
+
+    if (!user) return null;
+    return user;
 };
