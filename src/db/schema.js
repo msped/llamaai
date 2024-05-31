@@ -12,6 +12,7 @@ export const users = pgTable("user", {
     email: text("email").notNull().unique(),
     emailVerified: timestamp("emailVerified", { mode: "date" }),
     image: text("image"),
+    stripeCustomerId: text("stripeCustomerId"),
 });
 
 export const accounts = pgTable(
