@@ -120,16 +120,12 @@ export default function FullScreenDialog() {
                         sx={{ borderRight: 1, borderColor: 'divider' }}
                     >
                         <Tab label="Account" {...a11yProps(0)} />
-                        <Tab label="Subscription" {...a11yProps(1)} />
-                        <Tab label="Delete Account" {...a11yProps(2)} />
+                        <Tab label="Delete Account" {...a11yProps(1)} />
                     </Tabs>
                     <TabPanel value={value} index={0}>
                         Account
                     </TabPanel>
                     <TabPanel value={value} index={1}>
-                        Subscription
-                    </TabPanel>
-                    <TabPanel value={value} index={2}>
                         Delete Account
                     </TabPanel>
                 </Box>

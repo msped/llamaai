@@ -3,6 +3,7 @@ import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import GitHub from "next-auth/providers/github"
 import { db } from '@/db/index';
 import { users, accounts, sessions, verificationTokens } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -13,6 +14,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         verificationTokensTable: verificationTokens,
     }),
     basePath: '/api/auth',
+    session: {
+        jwt: true,
+    },
     providers: [
         GitHub({
             profile(profile) {
@@ -32,17 +36,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (pathname === "/middleware-example") return !!auth
             return true
         },
-        jwt({ token, trigger, session, account }) {
-            if (trigger === "update") token.name = session.user.name
-            return token
+        async jwt({ token }) {
+            const dbUser = await db.select().from(users).where(eq(users.email, token.email))
+            if (!dbUser) {
+                throw new Error("User not found")
+            }
+
+            return {
+                id: dbUser.id,
+                username: dbUser.username,
+                name: dbUser.name,
+                email: dbUser.email,
+                image: dbUser.image,
+            }
         },
-        async session({ session, token, user }) {
-            if (token?.accessToken) {
-                session.accessToken = token.accessToken
-                session.user = {
-                    id: token.id,
-                    ...user
-                }
+        async session({ session, token }) {
+            if (token) {
+                session.user.id = token.id
+                session.user.username = token.username
+                session.user.name = token.name
+                session.user.email = token.email
+                session.user.image = token.image
             }
             return session
         },

@@ -8,6 +8,7 @@ import MenuItem from '@mui/material/MenuItem';
 import IconButton from '@mui/material/IconButton';
 import PersonIcon from '@mui/icons-material/Person';
 import Settings from '@/components/auth/Settings'
+import ManageAccountsButton from '@/components/auth/ManageAccountsButton'
 
 export default function UserButton() {
     const user = useCurrentUser();
@@ -22,8 +23,8 @@ export default function UserButton() {
     };
 
     return (
-        <>
-            <IconButton onClick={handleClick} size="large" sx={{ ml: 2 }}>
+        <React.Fragment>
+            <IconButton onClick={handleClick} sx={{ ml: 2 }}>
                 <Avatar src={user?.image || ''}>
                     {!user?.image && <PersonIcon size="small" />}
                 </Avatar>
@@ -32,10 +33,17 @@ export default function UserButton() {
                 anchorEl={anchorEl}
                 open={Boolean(anchorEl)}
                 onClose={handleClose}
+                disableScrollLock={true}
                 MenuListProps={{
                     'aria-labelledby': 'user-account-menu-button',
                 }}
+                sx={{
+                    '& .MuiMenu-paper': {
+                        backgroundColor: '#000',
+                    }
+                }}
             >
+                <ManageAccountsButton userId={user?.id} />
                 <MenuItem>
                     <Settings />
                 </MenuItem>
@@ -43,6 +51,6 @@ export default function UserButton() {
                     <LogoutButton />
                 </MenuItem>
             </Menu>
-        </>
+        </ React.Fragment>
     );
 }

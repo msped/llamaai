@@ -1,13 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    webpack: config => {
-        config.resolve.fallback = { 
-            ...config.resolve.fallback, 
-            net: false, 
-            os: false, 
-            tls: false, 
-            fs: false 
-        };
+    webpack: (config, { isServer }) => {
+        if (!isServer) {
+            config.resolve.alias["net"] = false;
+            config.resolve.alias["tls"] = false;
+            config.resolve.alias["fs"] = false;
+            config.resolve.alias["dns"] = false;
+        }
         return config;
     },
 };

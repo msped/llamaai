@@ -1,4 +1,7 @@
 import { db } from '@/db/index';
+import { eq } from 'drizzle-orm';
+import { users } from '@/db/schema';
+
 
 export const getUserByUsername = async (username) => {
     try {
@@ -12,8 +15,7 @@ export const getUserByUsername = async (username) => {
 
 export const getUserById = async (id) => {
     try {
-        const user = await db.users.findUnique({ where: { id } });
-
+        const user = await db.select().from(users).where(eq(users.id, id));
         return user;
     } catch {
         return null;
@@ -35,10 +37,16 @@ export const createUser = async (data) => {
 
 export const updateUser = async (id, data) => {
     try {
-        const user = await db.users.update({ where: { id }, data });
+        const user = await await db.update(users)
+        .set(data)
+        .where(eq(users.id, id));    
 
         return user;
     } catch {
         return null;
     }
 };
+
+export async function deleteUser(userId) {
+    await db.delete(users).where(eq(users.id, userId))
+}
