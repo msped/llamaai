@@ -3,7 +3,6 @@
 import { auth } from "@/auth"
 import { stripe } from "@/lib/stripe";
 import { redirect } from "next/navigation";
-import { getSubscription } from "@/db/data/subscriptions";
 import { getUserById } from "@/db/data/user";
 
 export const createCustomerAction = async (name, email, userId) => {
@@ -86,11 +85,11 @@ export async function generateStripeSessionAction(priceId) {
 }
 
 export const createBillingPortalAction = async (userId) => {
-    const subscription =  await getSubscription(userId);
+    const user =  await getUserById(userId);
 
     const billingPortal = await stripe.billingPortal.sessions.create({
-        customer: `${subscription.stripeCustomerId}`,
+        customer: user[0].stripeCustomerId,
         return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
     });
-    redirect(billingPortal.url);
+    redirect(billingPortal.url)
 }
