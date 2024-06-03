@@ -12,6 +12,17 @@ CREATE TABLE IF NOT EXISTS "account" (
 	"session_state" text
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "githubIssue" (
+	"id" text PRIMARY KEY NOT NULL,
+	"userId" text NOT NULL,
+	"repo" text NOT NULL,
+	"nodeId" text NOT NULL,
+	"issueNumber" integer NOT NULL,
+	"title" text NOT NULL,
+	"body" text,
+	"open" boolean DEFAULT TRUE NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "session" (
 	"sessionToken" text PRIMARY KEY NOT NULL,
 	"userId" text NOT NULL,
@@ -33,6 +44,7 @@ CREATE TABLE IF NOT EXISTS "user" (
 	"email" text NOT NULL,
 	"emailVerified" timestamp,
 	"image" text,
+	"customerId" text,
 	CONSTRAINT "user_username_unique" UNIQUE("username"),
 	CONSTRAINT "user_email_unique" UNIQUE("email")
 );
@@ -45,6 +57,12 @@ CREATE TABLE IF NOT EXISTS "verificationToken" (
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "account" ADD CONSTRAINT "account_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "githubIssue" ADD CONSTRAINT "githubIssue_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;

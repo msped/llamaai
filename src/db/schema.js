@@ -3,7 +3,9 @@ import {
     pgTable,
     text,
     integer,
+    boolean,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const users = pgTable("user", {
     id: text("id").notNull().primaryKey(),
@@ -12,7 +14,7 @@ export const users = pgTable("user", {
     email: text("email").notNull().unique(),
     emailVerified: timestamp("emailVerified", { mode: "date" }),
     image: text("image"),
-    stripeCustomerId: text("stripeCustomerId"),
+    customerId: text("customerId"),
 });
 
 export const accounts = pgTable(
@@ -69,3 +71,16 @@ export const subscriptions = pgTable("subscriptions", {
         mode: "string",
     }).notNull(),
 });
+
+export const githubIssue = pgTable("githubIssue", {
+    id: text("id").notNull().primaryKey(),
+    userId: text("userId")
+        .notNull()
+        .references(() => users.id, { onDelete: "cascade" }),
+    repo: text("repo").notNull(),
+    nodeId: text("nodeId").notNull(),
+    issueNumber: integer("issueNumber").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    open: boolean("open").default(sql`TRUE`).notNull()
+})
