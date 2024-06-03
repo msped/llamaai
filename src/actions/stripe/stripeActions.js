@@ -46,7 +46,7 @@ export async function generateStripeSessionAction(priceId) {
     let stripeSession;
 
     const customer = await getUserById(user.id);
-    if (!customer.stripeCustomerId) {
+    if (!customer.customerId) {
         try {
             stripeCustomer = await createCustomerAction(user.name, user.email, user.id);
         } catch (error) {
@@ -54,7 +54,7 @@ export async function generateStripeSessionAction(priceId) {
             throw error;
         }
     } else {
-        stripeCustomer = { id: customer.stripeCustomerId };
+        stripeCustomer = { id: customer.customerId };
     }
 
     const checkoutObject = {
@@ -88,7 +88,7 @@ export const createBillingPortalAction = async (userId) => {
     const user =  await getUserById(userId);
 
     const billingPortal = await stripe.billingPortal.sessions.create({
-        customer: user[0].stripeCustomerId,
+        customer: user[0].customerId,
         return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
     });
     redirect(billingPortal.url)

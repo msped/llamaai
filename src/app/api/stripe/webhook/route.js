@@ -77,7 +77,7 @@ export async function POST(req) {
         .where(eq(subscriptions.stripeSubscriptionId, session.subscription));
     } else if (event.type === "customer.created") {
         updateUser(session.metadata.userId, {
-            stripeCustomerId: session.id,
+            customerId: session.id,
         });
     }
     return new Response(null, { status: 200 });
