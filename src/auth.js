@@ -24,6 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     id: profile.id.toString(),
                     name: profile.name,
                     username: profile.login,
+                    image: profile.avatar_url,
                     email: profile.email,
                     emailVerified: profile.emailVerified,
                 }
