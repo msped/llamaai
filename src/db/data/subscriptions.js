@@ -1,5 +1,3 @@
-"use server"
-
 import { db } from "@/db/index";
 import { subscriptions } from "../schema";
 import { eq } from "drizzle-orm";

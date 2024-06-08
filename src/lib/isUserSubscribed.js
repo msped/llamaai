@@ -1,5 +1,3 @@
-"use server"
-
 import { getSubscription } from "@/db/data/subscriptions";
 
 export async function isUserSubscribed(userId) {
