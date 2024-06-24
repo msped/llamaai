@@ -1,4 +1,4 @@
-"use server"
+'use server'
 
 import { getSubscription } from "@/db/data/subscriptions";
 

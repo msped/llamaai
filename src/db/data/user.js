@@ -1,6 +1,6 @@
 import { db } from '@/db/index';
 import { eq } from 'drizzle-orm';
-import { users } from '@/db/schema';
+import { users, accounts } from '@/db/schema';
 
 
 export const getUserByUsername = async (username) => {
@@ -21,6 +21,21 @@ export const getUserById = async (id) => {
         return null;
     }
 };
+
+export const getUserByProviderId = async (providerId) => {
+    try {
+        const user = await db.select({
+            id: users.id,
+            username: users.username
+    })
+        .from(users)
+        .innerJoin(accounts, eq(accounts.userId, users.id))
+        .where(eq(accounts.providerAccountId, providerId));
+        return user[0] || null;
+    } catch {
+        return null;
+    }
+}
 
 export const createUser = async (data) => {
     try {
