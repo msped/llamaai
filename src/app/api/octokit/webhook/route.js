@@ -2,7 +2,7 @@ import { App } from "@octokit/app";
 import { NextResponse } from "next/server";
 import createIssueComment from "@/octokit/utils/create-issue-comment";
 import { getUserByProviderId } from "@/db/data/user";
-import { updateIssue } from "@/octokit/data/issues";
+import { createIssue, updateIssue } from "@/octokit/data/issues";
 import { isUserSubscribed } from "@/lib/isUserSubscribed";
 import { processAssignedIssue, requestIssueMessage } from "@/octokit/gh_utils";
 import { headers } from "next/headers";
@@ -57,11 +57,22 @@ app.webhooks.on("issues.closed", async ({ payload }) => {
 })
 
 app.webhooks.on("issue_comment.created", async ({ octokit, payload}) => {
-    const { comment, repository, issue } = payload;
+    const { comment, repository, issue, sender } = payload;
     if (!comment.author_association === "OWNER") {
         return;
     }
     if (comment.body === "Yes") {
+        const user = await getUserByProviderId(sender.id)
+        await createIssue({
+            id: issue.id,
+            userId: user.id,
+            repo: repo,
+            nodeId: issue.node_id,
+            issueNumber: issueNumber,
+            title: issue.title,
+            body: issue.body,
+            open: true,
+        })
         await processAssignedIssue(octokit, payload)
     }
     if (comment.body === "No") {
