@@ -1,4 +1,6 @@
+import { createIssue, updateIssue } from "./data/issues";
 import createIssueComment from "./utils/create-issue-comment";
+import { generateContent } from "@/gemini/getCodeResponse";
 
 // Function to fetch issue details
 export const fetchIssueDetails = async (octokit, owner, repo, issue_number) => {
@@ -10,57 +12,72 @@ export const fetchIssueDetails = async (octokit, owner, repo, issue_number) => {
     return data;
 }
 
-  // Function to create a branch
-export const createBranch = async (octokit, owner, repo, base, newBranchName) => {
+// Function to create a branch
+export const createOrGetBranch = async (octokit, owner, repo, base, newBranchName) => {
     let refData;
 
     try {
         const response = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
             owner,
             repo,
-            ref: `heads/${base}`,
-        })
-        return response.data;
-    } catch (error) {
-        console.error('Failed to fetch ref:', error);
-    }
-    try {
-        await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
-            owner,
-            repo,
-            ref: `refs/heads/${newBranchName}`,
-            sha: refData.object.sha,
+            ref: `heads/${newBranchName}`,
         });
+        refData = response.data;
+        return refData;
     } catch (error) {
-        console.error('Failed to create branch:', error);
+        try {
+            const response = await octokit.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+                owner,
+                repo,
+                ref: `heads/${base}`,
+            });
+            refData = response.data;
+            await octokit.request("POST /repos/{owner}/{repo}/git/refs", {
+                owner,
+                repo,
+                ref: `refs/heads/${newBranchName}`,
+                sha: refData.object.sha,
+            });
+        } catch (error) {
+            console.error('Failed to create branch:', error);
+        }
     }
 }
 
-  // Function to create files and commit
-export const createFilesAndCommit = async (octokit, owner, repo, branch, pathsContentsMap) => {
-    for (const [path, content] of Object.entries(pathsContentsMap)) {
-        await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
-            owner,
-            repo,
-            path,
-            message: `Update ${path}`,
-            content: Buffer.from(content).toString('base64'),
-            branch,
-        });
+// Function to create files and commit
+export const createFilesAndCommit = async (octokit, owner, repo, branch, files) => {
+    for (const {filePath: path, contents, commitMessage} of files) {
+        try {
+            await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
+                owner,
+                repo,
+                path,
+                message: commitMessage,
+                content: Buffer.from(contents).toString('base64'),
+                branch,
+            });
+        } catch (error) {
+            console.error('Failed to create file:', error);
+        }
     }
 }
 
-  // Function to create a pull request
+// Function to create a pull request
 export const createPullRequest = async (octokit, owner, repo, title, head, base, body) => {
-    const { data } = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
-        owner,
-        repo,
-        title,
-        head,
-        base,
-        body,
-    });
-    return data;
+    try {
+        const { data } = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
+            owner,
+            repo,
+            title,
+            head,
+            base,
+            body,
+            maintainer_can_modify: true,
+        });
+        return data;
+    } catch (error) {
+        console.error('Failed to create pull request:', error);
+    }
 }
 
 export const processAssignedIssue = async (octokit, payload) => {
@@ -81,28 +98,27 @@ export const processAssignedIssue = async (octokit, payload) => {
     )
 
     try {
-        // Analyze repository structure
-        const dirStructure = await fetchRepositoryStructure(octokit, owner, repo);
-    
-        // Get AI-generated code (simulated here)
-        const { filePath, content } = await generateCodeWithAI(issue.title, dirStructure);
+        // Get AI-generated files
+        const files = await generateCodeWithAI(octokit, issue, repository);
     
         // Handle git operations
         const branchName = `llama-${issueLabels}-${issueNumber}`;
-        await createBranch(octokit, owner, repo, 'main', branchName);
-        await createFilesAndCommit(octokit, owner, repo, branchName, { [filePath]: content });
-        await createPullRequest(
+        await createOrGetBranch(octokit, owner, repo, 'main', branchName);
+        await createFilesAndCommit(octokit, owner, repo, branchName, files);
+        const pullRequest = await createPullRequest(
             octokit,
             owner, 
             repo, 
             `Fix for issue #${issueNumber}`, 
-            branchName, 
+            branchName,
             'main', 
             'Code generated by LlamaAI. This code has not been reviewed, ' +
             'please review and test it before merging.'
         );
         
-        // Should update db to show as completed
+        // Should update db to show as completed & link with pull
+        // request ID?
+        await updateIssue(issue.id, { open: false })
         console.log('Pull request created successfully.');
     } catch (error) {
         // Should send an email or save to db maybe?
@@ -110,20 +126,16 @@ export const processAssignedIssue = async (octokit, payload) => {
     }
 }
 
-export const fetchRepositoryStructure = async (octokit, owner, repo) => {
-    const { data: contents } = await octokit.request("GET /repos/{owner}/{repo}/contents/{path}", {
-        owner,
-        repo,
-        path: '', // root directory
-    });
-    return contents.filter(item => item.type === 'dir').map(dir => dir.path);
+// Function to request code from Gemini
+export const generateCodeWithAI = async(octokit, issue, repository) => {
+    const files = await generateContent(octokit, issue, repository);
+    if (!files) {
+        throw new Error('Failed to generate code.');
+    }
+    return files;
 }
 
-export const generateCodeWithAI = async(issueTitle, issueBody, dirStructure) => {
-
-    return { filePath, content };
-}
-
+// Function to send the initial message to user
 export const requestIssueMessage = async (octokit, payload) => {
     const { repository, issue } = payload;
     const owner = repository.owner.login;
