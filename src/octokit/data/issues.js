@@ -21,3 +21,11 @@ export const updateIssue = async (id, data) => {
     }
 }
 
+export const deleteIssue = async (id) => {
+    try {
+        const issue = await db.delete(githubIssue).where(eq(githubIssue.id, id));
+        return issue;
+    } catch (error) {
+        return null;
+    }
+}
