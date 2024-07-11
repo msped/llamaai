@@ -2,14 +2,17 @@ import { App } from "@octokit/app";
 import { NextResponse } from "next/server";
 import createIssueComment from "@/octokit/utils/create-issue-comment";
 import { getUserByProviderId } from "@/db/data/user";
-import { createIssue, updateIssue } from "@/octokit/data/issues";
+import { createIssue, updateIssue, deleteIssue } from "@/octokit/data/issues";
 import { isUserSubscribed } from "@/lib/isUserSubscribed";
-import { processAssignedIssue, requestIssueMessage } from "@/octokit/gh_utils";
+import { requestIssueMessage } from "@/octokit/gh_utils";
+import { addToIssuesQueue, removeFromIssuesQueue } from "../../queues/issues/route";
 import { headers } from "next/headers";
 
-const GITHUB_APP_ID = process.env.GITHUB_APP_ID;
-const GITHUB_PRIVATE_KEY= process.env.GITHUB_PRIVATE_KEY
-const GITHUB_WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
+const {
+    GITHUB_APP_ID,
+    GITHUB_PRIVATE_KEY,
+    GITHUB_WEBHOOK_SECRET,
+} = process.env;
 
 const app = new App({
     appId: GITHUB_APP_ID,
@@ -20,29 +23,24 @@ const app = new App({
 
 app.webhooks.on("issues.opened", async ({ octokit, payload }) => {
     const { repository, issue, sender } = payload;
-    const user = await getUserByProviderId(sender.id)
-    if (issue.author_association ==="OWNER" && issue.user.login === user.username) {
-        if (isUserSubscribed(user.id)) {
-            await requestIssueMessage(octokit, payload);
-        } else {
-            await createIssueComment(
-                octokit,
-                repository.owner.login,
-                repository.name,
-                issue.number,
-                'You do not have a valid subscription / account with LlamaAI, you can subscribe to this application at https://llamaai.dev/'
-            )
-        }
+    const user = await getUserByProviderId(sender.id);
+    if (
+        issue.author_association === "OWNER" &&
+        issue.user.login === user.username &&
+        isUserSubscribed(user.id)
+    ) {
+        await requestIssueMessage(octokit, payload);
     } else {
+        const message =
+            'You do not have the correct permissions or a valid subscription/account with LlamaAI.' +
+            ' Please ensure you are the repository owner and subscribe at https://llamaai.dev/';
         await createIssueComment(
             octokit,
             repository.owner.login,
             repository.name,
             issue.number,
-            'You do not have the correct permissions to let LlamaAI provide a solution to this issue.' +
-            'You must be the repository owner and have a valid subscription / account with LlamaAI.' +
-            'You can subscribe to this application at https://llamaai.dev/'
-        )
+            message
+        );
     }
 })
 
@@ -54,26 +52,34 @@ app.webhooks.on("issues.edited", async ({ payload }) => {
 app.webhooks.on("issues.closed", async ({ payload }) => {
     const { issue } = payload;
     await updateIssue(issue.id, { open: false })
+    await removeFromIssuesQueue(payload)
 })
 
-app.webhooks.on("issue_comment.created", async ({ octokit, payload}) => {
+app.webhooks.on("issues.deleted", async ({ payload }) => {
+    const { issue } = payload;
+    await deleteIssue(issue.id)
+    await removeFromIssuesQueue(payload)
+})
+
+app.webhooks.on("issue_comment.created", async ({ payload }) => {
     const { comment, repository, issue, sender } = payload;
     if (!comment.author_association === "OWNER") {
         return;
     }
     if (comment.body === "Yes") {
         const user = await getUserByProviderId(sender.id)
-        await createIssue({
+        const test = await createIssue({
             id: issue.id,
             userId: user.id,
-            repo: repo,
+            repo: repository.name,
             nodeId: issue.node_id,
-            issueNumber: issueNumber,
+            issueNumber: issue.number,
             title: issue.title,
             body: issue.body,
             open: true,
         })
-        await processAssignedIssue(octokit, payload)
+        console.log("ISSUE DATA: ", test)
+        await addToIssuesQueue(payload)
     }
     if (comment.body === "No") {
         await createIssueComment(
