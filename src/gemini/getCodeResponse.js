@@ -9,7 +9,7 @@ const generativeModel = vertex_ai.preview.getGenerativeModel({
     model: model,
     generationConfig: {
         'maxOutputTokens': 8192,
-        'temperature': 1,
+        'temperature': 0.5,
         'topP': 0.95,
         'responseMimeType': 'application/json'
     },
@@ -36,10 +36,28 @@ const generativeModel = vertex_ai.preview.getGenerativeModel({
 const chat = generativeModel.startChat({});
 
 async function sendMessage(message) {
-    const streamResult = await chat.sendMessage(message);
-    const response = streamResult.response.candidates[0].content;
-    const files = JSON.parse(response.parts[0].text);
-    return files;
+    try {
+        for (let attempt = 1; attempt <= 5; attempt++) {
+            const streamResult = await chat.sendMessage(message);
+
+            if (streamResult.response.finishReason !== 'RECITATION') {
+                const response = streamResult.response.candidates[0].content;
+                const files = JSON.parse(response.parts[0].text);
+                return files;
+            } else {
+                console.warn(`Recitation response received. Attempt ${attempt} of 5.`);
+                if (attempt === 5) {
+                    throw new Error('Failed to get a non-recitation response after 5 attempts.');
+                }
+                // Modify the message to explicitly ask for a non-recitation response
+                message = `Please provide a response that is not a recitation. 
+                ${message}`;
+            }
+        }
+    } catch (error) {
+        console.error(error);
+        throw error; // Re-throw the error to propagate it
+    }
 }
 
 const jsonSchema = (message) => {
@@ -74,13 +92,29 @@ async function generateContent(octokit, issue, repository) {
 
     // Construct the prompt with the repository structure
     const furtherDetails = ` Description: ${issue.body}`;
-    const message = `Generate a solution for ${repository.name} with the following issue: ${issue.title}
-    ${furtherDetails}. Please return the files you wish to modify / create and the solution in full. If
-    you need to modify an existing file, please return the full file with the updated code. Where
-    possible use existing files, if no files exist return the file path from the repository root with
-    the file name and extension. The repository structure has been provided below.
-    Repository Structure: \n` +
-    JSON.stringify(repoStructure, null, 2);
+    const message = `Generate a solution for the issue in the ${repository.name} repository. 
+    The issue is: ${issue.title}
+    Description: ${issue.body} ${furtherDetails}
+    
+    Please return the files you wish to modify/create and the solution in full. 
+    If you need to modify an existing file, please return the full file with the updated code. 
+    Where possible, use existing files. If no files exist, return the file path from the repository root with the file name and extension. 
+    
+    Do not provide recited responses.
+
+    You should return an array of JSON objects where each object has a filePath, contents, and commitMessage property like so: 
+    [
+        {
+            "filePath": "path/to/file.js",
+            "contents": "Modified file contents",
+            "commitMessage": "Commit message"
+        },
+        ...
+    ]
+    
+    Repository Structure: 
+    ${JSON.stringify(repoStructure, null, 2)}
+    `;
 
     // Send the prompt to Gemini
     const files = await sendMessage(`Follow JSON Schema.<JSONSchema>${
