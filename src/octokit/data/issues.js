@@ -5,10 +5,10 @@ import { githubIssue } from '@/db/schema';
 
 export const createIssue = async (data) => {
     try {
-        const issue = await db.insert(githubIssue).create(data);
+        const issue = await db.insert(githubIssue).values(data);
         return issue;
     } catch (error) {
-        return null;
+        console.error(error);
     }
 };
 
@@ -17,7 +17,7 @@ export const updateIssue = async (id, data) => {
         const issue = await db.update(githubIssue).set(data).where(eq(githubIssue.id, id));
         return issue;
     } catch (error) {
-        return null;
+        console.error(error);
     }
 }
 
@@ -26,6 +26,6 @@ export const deleteIssue = async (id) => {
         const issue = await db.delete(githubIssue).where(eq(githubIssue.id, id));
         return issue;
     } catch (error) {
-        return null;
+        console.error(error);
     }
 }
