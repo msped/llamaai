@@ -21,6 +21,7 @@ import SignedIn from "@/components/auth/SignedIn";
 import SignedOut from "@/components/auth/SignedOut"
 import UserButton from "@/components/auth/UserButton"
 import { LoginButton } from './auth/Login';
+import Feedback from './Feedback';
 
 const menuContents = [
     {
@@ -106,7 +107,7 @@ export default function Header() {
 
                         {/* Account Settings Desktop View */}
                         <SignedIn>
-                            <Stack direction='row' spacing={2.5} justifyContent='center' alignItems='center'>
+                            <Stack direction='row' spacing={.5} justifyContent='center' alignItems='center'>
                                 <Link href='/dashboard'>
                                     <SpaceDashboardIcon sx={{ 
                                         display: 'flex',
@@ -114,6 +115,7 @@ export default function Header() {
                                         alignItems: 'center'
                                     }}/>
                                 </Link>
+                                <Feedback />
                                 <UserButton />
                             </Stack>
                         </SignedIn>
