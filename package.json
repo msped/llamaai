@@ -40,7 +40,8 @@
     "quirrel": "^1.14.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "stripe": "^15.8.0"
+    "stripe": "^15.8.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "coverage": "^0.4.1",
