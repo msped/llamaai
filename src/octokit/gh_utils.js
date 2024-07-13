@@ -85,7 +85,6 @@ export const processAssignedIssue = async (octokit, payload) => {
     const owner = repository.owner.login;
     const repo = repository.name;
     const issueNumber = issue.number;
-    const issueLabels = issue.labels.map(label => label.name).join('-');
 
     createIssueComment(
         octokit,
