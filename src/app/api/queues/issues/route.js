@@ -22,15 +22,16 @@ export const issuesQueue = Queue(
 );
 
 export const addToIssuesQueue = async (payload) => {
-    const existingJob = issuesQueue.get(payload.issue.node_id);
+    const existingJob = await issuesQueue.getById(payload.issue.node_id);
     if (existingJob) {
         return;
     }
-    await issuesQueue.enqueue({ payload })
+    await issuesQueue.enqueue({ payload }, { id: payload.issue.node_id })
+
 }
 
 export const removeFromIssuesQueue = async (payload) => {
-    const existingJob = issuesQueue.get(payload.issue.node_id);
+    const existingJob = await issuesQueue.getById(payload.issue.node_id);
     if (!existingJob) {
         return;
     }
