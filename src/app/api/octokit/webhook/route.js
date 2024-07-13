@@ -68,7 +68,7 @@ app.webhooks.on("issue_comment.created", async ({ payload }) => {
     }
     if (comment.body === "Yes") {
         const user = await getUserByProviderId(sender.id)
-        const test = await createIssue({
+        await createIssue({
             id: issue.id,
             userId: user.id,
             repo: repository.name,
@@ -78,7 +78,6 @@ app.webhooks.on("issue_comment.created", async ({ payload }) => {
             body: issue.body,
             open: true,
         })
-        console.log("ISSUE DATA: ", test)
         await addToIssuesQueue(payload)
     }
     if (comment.body === "No") {
