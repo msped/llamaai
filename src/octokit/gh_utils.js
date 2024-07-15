@@ -1,6 +1,7 @@
 import { updateIssue } from "./data/issues";
 import createIssueComment from "./utils/create-issue-comment";
 import { generateContent } from "@/gemini/getCodeResponse";
+import { obtainProjectDependencies } from "@/gemini/getProjectDependencies";
 
 // Function to fetch issue details
 export const fetchIssueDetails = async (octokit, owner, repo, issue_number) => {
@@ -45,17 +46,26 @@ export const createOrGetBranch = async (octokit, owner, repo, base, newBranchNam
 }
 
 // Function to create files and commit
-export const createFilesAndCommit = async (octokit, owner, repo, branch, files) => {
-    for (const {filePath: path, contents, commitMessage} of files) {
+export const createOrUpdateFilesAndCommit = async (octokit, owner, repo, branch, files) => {
+    for (const {filePath: path, contents, commitMessage, sha} of files) {
+        const octokitObject = {
+            owner: owner,
+            repo: repo,
+            path: path,
+            message: commitMessage,
+            content: Buffer.from(contents).toString('base64'),
+            branch: branch,
+        }
+
+        if (sha) {
+            octokitObject.sha = sha;
+        }
+
         try {
-            await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
-                owner,
-                repo,
-                path,
-                message: commitMessage,
-                content: Buffer.from(contents).toString('base64'),
-                branch,
-            });
+            await octokit.request(
+                "PUT /repos/{owner}/{repo}/contents/{path}", 
+                octokitObject
+            );
         } catch (error) {
             console.error('Failed to create file:', error);
         }
@@ -103,7 +113,7 @@ export const processAssignedIssue = async (octokit, payload) => {
         // Handle git operations
         const branchName = `llama-fix-${issueNumber}`;
         await createOrGetBranch(octokit, owner, repo, 'main', branchName);
-        await createFilesAndCommit(octokit, owner, repo, branchName, files);
+        await createOrUpdateFilesAndCommit(octokit, owner, repo, branchName, files);
         const pullRequest = await createPullRequest(
             octokit,
             owner, 
@@ -115,8 +125,6 @@ export const processAssignedIssue = async (octokit, payload) => {
             'please review and test it before merging.'
         );
         
-        // Should update db to show as completed & link with pull
-        // request ID?
         if(pullRequest.id){
             await updateIssue(issue.id, { open: false })
             createIssueComment(
@@ -138,7 +146,9 @@ export const processAssignedIssue = async (octokit, payload) => {
 
 // Function to request code from Gemini
 export const generateCodeWithAI = async(octokit, issue, repository) => {
-    const files = await generateContent(octokit, issue, repository);
+    const dependencies = await obtainProjectDependencies(octokit, repository);
+    if (!dependencies) throw new Error('Failed to obtain project dependencies.');
+    const files = await generateContent(octokit, issue, repository, dependencies);
     if (!files) throw new Error('Failed to generate code.');
     return files;
 }
